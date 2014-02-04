@@ -33,6 +33,14 @@ public: // Net::connection
 	virtual int process_events(short int polling_events);
 
 private:
+	struct destination_node
+	{
+		std::string id_;
+		int port_;
+	};
+
 	Server *own_server_;
+	std::string id_;
+	std::map<std::string, destination_node> destination_node_list_;
 };
 
