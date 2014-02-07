@@ -42,6 +42,7 @@ Net::i_net_member* Server::create_connection(int socket)
 Server::ServerConnection::ServerConnection(Server *own_server, int socket)
 	: Net::connection(socket, Net::c_poll_event_in)
 	, own_server_(own_server)
+	, logined_(false)
 {
 }
 
@@ -51,6 +52,18 @@ Server::ServerConnection::~ServerConnection()
 
 int Server::ServerConnection::process_events(short int polling_events)
 {
+	if (polling_events == Net::c_poll_event_in)
+	{
+		if (!logined_)
+		{
+
+		}
+	}
+	else
+	{
+		
+	}
+
 	return Net::error_no_;
 }
 

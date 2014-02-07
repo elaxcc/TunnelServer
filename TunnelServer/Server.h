@@ -39,6 +39,7 @@ private:
 		int port_;
 	};
 
+	bool logined_;
 	Server *own_server_;
 	std::string id_;
 	std::map<std::string, destination_node> destination_node_list_;
