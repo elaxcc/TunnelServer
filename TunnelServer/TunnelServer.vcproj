@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../boost;../../postgresql/src/include;../../postgresql/src/interfaces/libpq;../../Software/Software;../../NetSocket/NetSocket"
+				AdditionalIncludeDirectories="../../TunnelCommon;../../boost;../../postgresql/src/include;../../postgresql/src/interfaces/libpq;../../Software/Software;../../NetSocket/NetSocket;../../openssl/crypto;../../openssl/inc32"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -61,9 +61,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="NetSocket.lib Software.lib libpq.lib"
+				AdditionalDependencies="NetSocket.lib Software.lib libpq.lib TunnelCommon.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="../../boost/stage/lib;../../postgresql/Debug/libpq;../../Software/Debug;../../NetSocket/Debug"
+				AdditionalLibraryDirectories="../../boost/stage/lib;../../postgresql/Debug/libpq;../../Software/Debug;../../NetSocket/Debug;../../TunnelCommon/Debug"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -117,8 +117,9 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="../../boost;../../postgresql/src/include;../../postgresql/src/interfaces/libpq;../../Software/Software;../../NetSocket/NetSocket"
+				AdditionalIncludeDirectories="../../TunnelCommon;../../boost;../../postgresql/src/include;../../postgresql/src/interfaces/libpq;../../Software/Software;../../NetSocket/NetSocket;../../openssl/crypto;../../openssl/inc32"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				BasicRuntimeChecks="0"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="2"
@@ -136,9 +137,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="NetSocket.lib Software.lib libpq.lib"
+				AdditionalDependencies="NetSocket.lib Software.lib libpq.lib TunnelCommon.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="../../boost/stage/lib;../../postgresql/Release/libpq;../../Software/Release;../../NetSocket/Release"
+				AdditionalLibraryDirectories="../../TunnelCommon/Release;../../boost/stage/lib;../../postgresql/Release/libpq;../../Software/Release;../../NetSocket/Release"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"

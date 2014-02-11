@@ -18,4 +18,10 @@
 
 #include <boost/cstdint.hpp>
 
+#include <rsa/rsa.h>
+#include <pem/pem.h>
+
+#include "TunnelCommon/Crypting.h"
+#include "TunnelCommon/Hash.h"
+
 // TODO: reference additional headers your program requires here

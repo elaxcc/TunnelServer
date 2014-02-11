@@ -48,6 +48,7 @@ Server::ServerConnection::ServerConnection(Server *own_server, int socket)
 
 Server::ServerConnection::~ServerConnection()
 {
+	own_server_->unregister_client(id_);
 }
 
 int Server::ServerConnection::process_events(short int polling_events)
