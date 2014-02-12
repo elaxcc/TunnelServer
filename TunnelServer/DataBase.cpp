@@ -2,8 +2,6 @@
 
 #include "DataBase.h"
 
-#include "StringService.h"
-
 namespace
 {
 

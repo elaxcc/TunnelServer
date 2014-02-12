@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../TunnelCommon;../../boost;../../postgresql/src/include;../../postgresql/src/interfaces/libpq;../../Software/Software;../../NetSocket/NetSocket;../../openssl/crypto;../../openssl/inc32"
+				AdditionalIncludeDirectories="../../TunnelCommon;../../boost;../../postgresql/src/include;../../postgresql/src/interfaces/libpq;../../Software;../../NetSocket;../../openssl/crypto;../../openssl/inc32"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"

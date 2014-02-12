@@ -10,9 +10,10 @@
 #include <stdio.h>
 #include <tchar.h>
 
-#include <vector>
-#include <string>
 #include <map>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include <libpq-fe.h>
 
@@ -23,5 +24,9 @@
 
 #include "TunnelCommon/Crypting.h"
 #include "TunnelCommon/Hash.h"
+
+#include "Software/StringService.h"
+
+#include "NetSocket/NetCommon.h"
 
 // TODO: reference additional headers your program requires here

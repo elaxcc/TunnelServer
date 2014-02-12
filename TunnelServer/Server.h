@@ -1,7 +1,5 @@
 #pragma once
 
-#include "NetCommon.h"
-
 class Server : Net::server
 {
 public:
