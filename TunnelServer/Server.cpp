@@ -103,11 +103,31 @@ int Server::ServerConnection::process_events(short int polling_events)
 			else if (!protocol_.got_login_data())
 			{
 				parse_result = protocol_.parse_login_packet();
-				if (parse_result == TunnelCommon::ProtocolParser::Error_no)
+				if (parse_result == TunnelCommon::ProtocolParser::Error_no &&
+					protocol_.got_login_data())
 				{
 					// check login and passwd
-					
+					bool user_exist = db_->check_user_exist(
+						protocol_.get_login(), protocol_.get_passwd_hash());
+					if (user_exist)
+					{
+						// send login accept packet
+						std::vector<char> accept_login_packet;
+						protocol_.prepare_packet(
+							TunnelCommon::ProtocolParser::c_user_accept_packet_,
+							accept_login_packet);
+						Net::send_data(get_socket(), &accept_login_packet[0],
+							accept_login_packet.size());
+					}
+					else
+					{
+						return Net::error_connection_is_closed_;
+					}
 				}
+			}
+			else
+			{
+				//!fixme can't parse login data
 			}
 		}
 		else
