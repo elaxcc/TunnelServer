@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DataBase.h"
+
 class Server : Net::server
 {
 public:
@@ -14,17 +16,18 @@ private:
 	class ServerConnection;
 
 private:
-	void register_client(const std::string& client_id, ServerConnection* connection);
-	void unregister_client(const std::string& client_id);
+	void register_client(int client_id, ServerConnection* connection);
+	void unregister_client(int client_id);
 
 private:
-	std::map<std::string, ServerConnection*> clients_;
+	std::map<int, ServerConnection*> clients_;
+	DataBase db_;
 };
 
 class Server::ServerConnection : public Net::connection
 {
 public:
-	ServerConnection(Server *own_server, int socket);
+	ServerConnection(Server *own_server, int socket, DataBase *db);
 	~ServerConnection();
 
 public: // Net::connection
@@ -33,15 +36,14 @@ public: // Net::connection
 private:
 	struct destination_node
 	{
-		std::string id_;
+		int id_;
 		int port_;
 	};
 
 	Server *own_server_;
-	std::string id_;
+	int id_;
 	std::map<std::string, destination_node> destination_node_list_;
-
-	bool logined_;
-	TunnelCommon::RsaCrypting rsa_crypting_;
+	TunnelCommon::ProtocolParser protocol_;
+	DataBase *db_;
 };
 

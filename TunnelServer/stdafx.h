@@ -14,16 +14,19 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <list>
 
 #include <libpq-fe.h>
 
 #include <boost/cstdint.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <rsa/rsa.h>
 #include <pem/pem.h>
 
 #include "TunnelCommon/Crypting.h"
 #include "TunnelCommon/Hash.h"
+#include "TunnelCommon/Protocol.h"
 
 #include "Software/StringService.h"
 

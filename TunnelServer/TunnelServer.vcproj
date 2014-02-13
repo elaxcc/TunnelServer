@@ -231,6 +231,10 @@
 				RelativePath=".\targetver.h"
 				>
 			</File>
+			<File
+				RelativePath=".\Tunnel.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

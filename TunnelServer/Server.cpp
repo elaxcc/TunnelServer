@@ -2,9 +2,20 @@
 
 #include "Server.h"
 
+namespace
+{
+
+const std::string db_name = "tunnel_db";
+const std::string db_host = "localhost";
+const std::string db_user = "postgres";
+const std::string db_password = "12345";
+
+} // namespace
+
 Server::Server(Net::net_manager *net_manager,
 	int port, bool nonblocking, bool no_nagle_delay)
 	: Net::server(net_manager, port, nonblocking, no_nagle_delay)
+	, db_(db_name, db_host, db_user, db_password)
 {
 }
 
@@ -12,17 +23,17 @@ Server::~Server()
 {
 }
 
-void Server::register_client(const std::string& client_id, Server::ServerConnection* connection)
+void Server::register_client(int client_id, Server::ServerConnection* connection)
 {
-	if (!client_id.empty())
+	if (client_id != 0)
 	{
 		clients_.insert(std::make_pair(client_id, connection));
 	}
 }
 
-void Server::unregister_client(const std::string& client_id)
+void Server::unregister_client(int client_id)
 {
-	std::map<std::string, Server::ServerConnection*>::iterator iter =
+	std::map<int, Server::ServerConnection*>::iterator iter =
 		clients_.find(client_id);
 	if (iter != clients_.end())
 	{
@@ -32,17 +43,18 @@ void Server::unregister_client(const std::string& client_id)
 
 Net::i_net_member* Server::create_connection(int socket)
 {
-	ServerConnection *new_client = new ServerConnection(this, socket);
+	ServerConnection *new_client = new ServerConnection(this, socket, &db_);
 
 	return new_client;
 }
 
 ///////////////////////////////////////////////////////////////////////////
 
-Server::ServerConnection::ServerConnection(Server *own_server, int socket)
+Server::ServerConnection::ServerConnection(Server *own_server, int socket,
+	DataBase *db)
 	: Net::connection(socket, Net::c_poll_event_in)
 	, own_server_(own_server)
-	, logined_(false)
+	, db_(db)
 {
 }
 
@@ -55,9 +67,52 @@ int Server::ServerConnection::process_events(short int polling_events)
 {
 	if (polling_events == Net::c_poll_event_in)
 	{
-		if (!logined_)
+		// receive data from socket
+		std::vector<char> recv_data;
+		int recv_result = Net::recv_all(get_socket(), recv_data);
+		if (recv_result == Net::error_connection_is_closed_)
 		{
+			return Net::error_connection_is_closed_;
+		}
 
+		// parse packet
+		int parse_result = protocol_.parse_common(recv_data);
+		if (protocol_.is_complete())
+		{
+			if (!protocol_.got_rsa_key())
+			{
+				// process external RSA public key
+
+				parse_result = protocol_.parse_rsa_key_packet();
+				if (parse_result == TunnelCommon::ProtocolParser::Error_no &&
+					protocol_.got_rsa_key())
+				{
+					// send internal RSA public key
+					std::vector<char> packet;
+					parse_result = protocol_.prepare_rsa_internal_pub_key_packet(packet);
+					if (parse_result == TunnelCommon::ProtocolParser::Error_no)
+					{
+						Net::send_data(get_socket(), &packet[0], packet.size());
+					}
+					else
+					{
+						//!fixme can't prepare packet with internal RSA public key
+					}
+				}
+			}
+			else if (!protocol_.got_login_data())
+			{
+				parse_result = protocol_.parse_login_packet();
+				if (parse_result == TunnelCommon::ProtocolParser::Error_no)
+				{
+					// check login and passwd
+					
+				}
+			}
+		}
+		else
+		{
+			protocol_.flush_common();
 		}
 	}
 	else
