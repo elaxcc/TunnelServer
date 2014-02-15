@@ -12,18 +12,18 @@ const std::string db_password = "12345";
 
 } // namespace
 
-Server::Server(Net::net_manager *net_manager,
+TunnelServer::TunnelServer(Net::net_manager *net_manager,
 	int port, bool nonblocking, bool no_nagle_delay)
 	: Net::server(net_manager, port, nonblocking, no_nagle_delay)
 	, db_(db_name, db_host, db_user, db_password)
 {
 }
 
-Server::~Server()
+TunnelServer::~TunnelServer()
 {
 }
 
-void Server::register_client(int client_id, Server::ServerConnection* connection)
+void TunnelServer::register_client(int client_id, TunnelServer::Node* connection)
 {
 	if (client_id != 0)
 	{
@@ -31,9 +31,9 @@ void Server::register_client(int client_id, Server::ServerConnection* connection
 	}
 }
 
-void Server::unregister_client(int client_id)
+void TunnelServer::unregister_client(int client_id)
 {
-	std::map<int, Server::ServerConnection*>::iterator iter =
+	std::map<int, TunnelServer::Node*>::iterator iter =
 		clients_.find(client_id);
 	if (iter != clients_.end())
 	{
@@ -43,27 +43,28 @@ void Server::unregister_client(int client_id)
 
 Net::i_net_member* Server::create_connection(int socket)
 {
-	ServerConnection *new_client = new ServerConnection(this, socket, &db_);
+	Node *new_client = new Node(this, socket, &db_);
 
 	return new_client;
 }
 
 ///////////////////////////////////////////////////////////////////////////
 
-Server::ServerConnection::ServerConnection(Server *own_server, int socket,
+TunnelServer::Node::Node(Server *own_server, int socket,
 	DataBase *db)
 	: Net::connection(socket, Net::c_poll_event_in)
 	, own_server_(own_server)
 	, db_(db)
+	, is_logined_(false)
 {
 }
 
-Server::ServerConnection::~ServerConnection()
+TunnelServer::Node::~Node()
 {
 	own_server_->unregister_client(id_);
 }
 
-int Server::ServerConnection::process_events(short int polling_events)
+int TunnelServer::Node::process_events(short int polling_events)
 {
 	if (polling_events == Net::c_poll_event_in)
 	{
@@ -77,62 +78,13 @@ int Server::ServerConnection::process_events(short int polling_events)
 
 		// parse packet
 		int parse_result = protocol_.parse_common(recv_data);
-		if (protocol_.is_complete())
+		if (!is_logined_)
 		{
-			if (!protocol_.got_rsa_key())
-			{
-				// process external RSA public key
-
-				parse_result = protocol_.parse_rsa_key_packet();
-				if (parse_result == TunnelCommon::ProtocolParser::Error_no &&
-					protocol_.got_rsa_key())
-				{
-					// send internal RSA public key
-					std::vector<char> packet;
-					parse_result = protocol_.prepare_rsa_internal_pub_key_packet(packet);
-					if (parse_result == TunnelCommon::ProtocolParser::Error_no)
-					{
-						Net::send_data(get_socket(), &packet[0], packet.size());
-					}
-					else
-					{
-						//!fixme can't prepare packet with internal RSA public key
-					}
-				}
-			}
-			else if (!protocol_.got_login_data())
-			{
-				parse_result = protocol_.parse_login_packet();
-				if (parse_result == TunnelCommon::ProtocolParser::Error_no &&
-					protocol_.got_login_data())
-				{
-					// check login and passwd
-					bool user_exist = db_->check_user_exist(
-						protocol_.get_login(), protocol_.get_passwd_hash());
-					if (user_exist)
-					{
-						// send login accept packet
-						std::vector<char> accept_login_packet;
-						protocol_.prepare_packet(
-							TunnelCommon::ProtocolParser::c_user_accept_packet_,
-							accept_login_packet);
-						Net::send_data(get_socket(), &accept_login_packet[0],
-							accept_login_packet.size());
-					}
-					else
-					{
-						return Net::error_connection_is_closed_;
-					}
-				}
-			}
-			else
-			{
-				//!fixme can't parse login data
-			}
+			try_login();
 		}
 		else
 		{
-			protocol_.flush_common();
+			process_packet();
 		}
 	}
 	else
@@ -140,6 +92,57 @@ int Server::ServerConnection::process_events(short int polling_events)
 		
 	}
 
+	return Net::error_no_;
+}
+
+int TunnelServer::Node::try_login()
+{
+	int parse_result = TunnelCommon::ProtocolParser::Error_no;
+
+	if (!protocol_.got_rsa_key())
+	{
+		// process external RSA public key
+
+		if (protocol_.parse_rsa_key_packet() == TunnelCommon::ProtocolParser::Error_no)
+		{
+			// send internal RSA public key
+			std::vector<char> packet;
+			parse_result = protocol_.prepare_rsa_internal_pub_key_packet(packet);
+			if (parse_result == TunnelCommon::ProtocolParser::Error_no)
+			{
+				Net::send_data(get_socket(), &packet[0], packet.size());
+				return Net::error_no_;
+			}
+		}
+		return Net::error_connection_is_closed_;
+	}
+	else if (!protocol_.got_login_data())
+	{
+		if (protocol_.parse_login_packet() == TunnelCommon::ProtocolParser::Error_no)
+		{
+			// check login and passwd
+			bool user_exist = db_->check_user_exist(protocol_.get_login(), protocol_.get_passwd_hash());
+			if (user_exist)
+			{
+				// send login accept packet
+				std::vector<char> accept_login_packet;
+				protocol_.prepare_packet(
+					TunnelCommon::ProtocolParser::c_user_accept_packet_,
+					accept_login_packet);
+				Net::send_data(get_socket(), &accept_login_packet[0],
+					accept_login_packet.size());
+
+				is_logined_ = true;
+
+				return Net::error_no_;
+			}
+		}
+		return Net::error_connection_is_closed_;
+	}
+}
+
+int TunnelServer::Node::process_packet()
+{
 	return Net::error_no_;
 }
 
