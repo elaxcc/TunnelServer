@@ -56,6 +56,7 @@ TunnelServer::Node::Node(TunnelServer *own_server, int socket,
 	, own_server_(own_server)
 	, db_(db)
 	, is_logined_(false)
+	, node_id_(0)
 {
 }
 
@@ -97,18 +98,18 @@ int TunnelServer::Node::process_events(short int polling_events)
 
 int TunnelServer::Node::try_login()
 {
-	int parse_result = TunnelCommon::ProtocolParser::Error_no;
+	int parse_result = ProtocolParser::Error_no;
 
 	if (!protocol_.got_rsa_key())
 	{
 		// process external RSA public key
 
-		if (protocol_.parse_rsa_key_packet() == TunnelCommon::ProtocolParser::Error_no)
+		if (protocol_.parse_rsa_key_packet() == ProtocolParser::Error_no)
 		{
 			// send internal RSA public key
 			std::vector<char> packet;
 			parse_result = protocol_.prepare_rsa_internal_pub_key_packet(packet);
-			if (parse_result == TunnelCommon::ProtocolParser::Error_no)
+			if (parse_result == ProtocolParser::Error_no)
 			{
 				Net::send_data(get_socket(), &packet[0], packet.size());
 				return Net::error_no_;
@@ -118,7 +119,7 @@ int TunnelServer::Node::try_login()
 	}
 	else if (!protocol_.got_login_data())
 	{
-		if (protocol_.parse_login_packet() == TunnelCommon::ProtocolParser::Error_no)
+		if (protocol_.parse_login_packet() == ProtocolParser::Error_no)
 		{
 			// check login and passwd
 			bool user_exist = db_->check_user_exist(protocol_.get_login(), protocol_.get_passwd_hash());
@@ -127,18 +128,16 @@ int TunnelServer::Node::try_login()
 				// get node ID by name
 				if (!protocol_.get_node_name().empty())
 				{
-					int node_id = 0;
-					if (db_.get_node_id_by_name(protocol_.get_node_name(), node_id))
+					if (db_->get_node_id_by_name(protocol_.get_node_name(), &node_id_))
 					{
-						node_id_ = node_id;
-						own_server_->register_client(node_id_);
+						own_server_->register_client(node_id_, this);
 					}
 				}
 
 				// send login accept packet
 				std::vector<char> accept_login_packet;
 				protocol_.prepare_packet(
-					TunnelCommon::ProtocolParser::c_user_accept_packet_,
+					ProtocolParser::c_user_accept_packet_,
 					accept_login_packet);
 				Net::send_data(get_socket(), &accept_login_packet[0],
 					accept_login_packet.size());

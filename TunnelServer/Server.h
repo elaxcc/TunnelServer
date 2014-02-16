@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DataBase.h"
+#include "Protocol.h"
 
 class TunnelServer : Net::server
 {
@@ -46,7 +47,7 @@ private:
 	TunnelServer *own_server_;
 	int node_id_;
 	std::map<std::string, destination_node> destination_node_list_;
-	TunnelCommon::ProtocolParser protocol_;
+	ProtocolParser protocol_;
 	DataBase *db_;
 	bool is_logined_;
 };

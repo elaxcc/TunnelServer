@@ -182,6 +182,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Protocol.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Server.cpp"
 				>
 			</File>
@@ -217,6 +221,10 @@
 			>
 			<File
 				RelativePath=".\DataBase.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Protocol.h"
 				>
 			</File>
 			<File

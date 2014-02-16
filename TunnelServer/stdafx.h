@@ -26,7 +26,6 @@
 
 #include "TunnelCommon/Crypting.h"
 #include "TunnelCommon/Hash.h"
-#include "TunnelCommon/Protocol.h"
 
 #include "Software/StringService.h"
 
