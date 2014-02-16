@@ -13,30 +13,24 @@ public:
 public: // Net::server
 	virtual Net::i_net_member* create_connection(int socket);
 
-private:
-	class Node;
-
-private:
 	void register_client(int client_id, Node* connection);
 	void unregister_client(int client_id);
 
 private:
 	std::map<int, Node*> clients_;
-	DataBase db_;
 };
 
-class TunnelServer::Node : public Net::connection
+class Node : public Net::connection
 {
 public:
-	Node(TunnelServer *own_server, int socket, DataBase *db);
+	Node(TunnelServer *own_server, int socket);
 	~Node();
 
 public: // Net::connection
 	virtual int process_events(short int polling_events);
+	void set_node_id(int node_id);
 
 private:
-	int try_login();
-	int process_packet();
 
 	struct destination_node
 	{
@@ -47,8 +41,7 @@ private:
 	TunnelServer *own_server_;
 	int node_id_;
 	std::map<std::string, destination_node> destination_node_list_;
-	ProtocolParser protocol_;
-	DataBase *db_;
+	ProtocolParser *protocol_;
 	bool is_logined_;
 };
 

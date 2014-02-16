@@ -2,16 +2,29 @@
 
 #include "Protocol.h"
 
+#include "Server.h"
 
-const std::string ProtocolParser::c_user_accept_packet_ = "Hello user!!!";
+namespace
+{
 
-ProtocolParser::ProtocolParser()
+const std::string db_name = "tunnel_db";
+const std::string db_host = "localhost";
+const std::string db_user = "postgres";
+const std::string db_password = "12345";
+
+const std::string packet_user_accept = "Hello user!!!";
+
+} // namespace
+
+ProtocolParser::ProtocolParser(Node *own_node)
 	: got_data_len_(false)
 	, got_data_(false)
 	, got_crc_(false)
 	, complete_(false)
-	, got_rsa_key_(false)
+	, got_external_rsa_key_(false)
 	, got_login_data_(false)
+	, db_(db_name, db_host, db_user, db_password)
+	, own_node_(own_node)
 {
 	rsa_crypting_.GenerateInternalKeys();
 }
@@ -111,11 +124,82 @@ void ProtocolParser::reset()
 	login_.clear();
 	passwd_hash_.clear();
 
-	got_rsa_key_ = false;
+	got_external_rsa_key_ = false;
 	got_login_data_ = false;
 }
 
-int ProtocolParser::parse_rsa_key_packet()
+int ProtocolParser::process_packet()
+{
+	int packet_type = 0;
+	packet_type = 0x000000FF & data_[0];
+	packet_type = packet_type | (0x0000FF00 & (data_[1] << 8));
+	packet_type = packet_type | (0x00FF0000 & (data_[2] << 16));
+	packet_type = packet_type | (0xFF000000 & (data_[3] << 24));
+
+	switch (packet_type)
+	{
+	case Packet_type_external_rsa_key :
+		{
+			if (!got_rsa_key())
+			{
+				// process external RSA public key
+				if (parse_external_rsa_key_packet() == ProtocolParser::Error_no)
+				{
+					// send internal RSA public key
+					std::vector<char> packet;
+					int parse_result = prepare_rsa_internal_pub_key_packet(packet);
+					if (parse_result == ProtocolParser::Error_no)
+					{
+						Net::send_data(own_node_->get_socket(), &packet[0], packet.size());
+					}
+				}
+				return Error_rsa_key_packet;
+			}
+
+			break;
+		}
+	case Packet_type_login_data :
+		{
+			if (!got_login_data_)
+			{
+				if (parse_login_packet() == ProtocolParser::Error_no)
+				{
+					// check login and passwd
+					bool user_exist = db_.check_user_exist(login_, passwd_hash_);
+					if (user_exist)
+					{
+						// get node ID by name
+						if (node_name_.empty())
+						{
+							int node_id = 0;
+							if (db_.get_node_id_by_name(node_name_, &node_id))
+							{
+								own_node_->set_node_id(node_id);
+							}
+						}
+
+						// send login accept packet
+						std::vector<char> accept_login_packet;
+						prepare_packet(Packet_type_login_accept, packet_user_accept,
+							accept_login_packet);
+						Net::send_data(own_node_->get_socket(), &accept_login_packet[0],
+							accept_login_packet.size());
+
+						return Net::error_no_;
+					}
+				}
+			}
+			break;
+		}
+	default:
+		{
+			return Error_unknown_packet;
+		}
+	}
+	return Error_no;
+}
+
+int ProtocolParser::parse_external_rsa_key_packet()
 {
 	if (!complete_)
 	{
@@ -138,7 +222,7 @@ int ProtocolParser::parse_rsa_key_packet()
 	int res = rsa_crypting_.RSA_FromPublicKey(&data_[sizeof(rsa_pub_kye_len)], rsa_pub_kye_len);
 	if (res == TunnelCommon::RsaCrypting::Errror_no)
 	{
-		got_rsa_key_ = true;
+		got_external_rsa_key_ = true;
 		return Error_no;
 	}
 	return Error_rsa_key_packet;
@@ -221,16 +305,21 @@ int ProtocolParser::parse_login_packet()
 	return Error_no;
 }
 
-int ProtocolParser::parse_data_packet()
+int ProtocolParser::prepare_packet(int packet_type, const std::vector<char>& data,
+	std::vector<char>& out_packet) const
 {
-	return Error_no;
-}
+	std::vector<char> data_copy(data.begin(), data.end());
 
-int ProtocolParser::prepare_packet(const std::vector<char>& data, std::vector<char>& out_packet) const
-{
+	// packet type
+	for (int i = sizeof(packet_type) - 1; i > 0; --i)
+	{
+		char tmp = (char) (packet_type >> (8 * i));
+		data_copy.insert(data_copy.begin(), tmp);
+	}
+
 	// encrypting
 	std::vector<char> encrypted_data;
-	int encrypt_result = rsa_crypting_.EncryptByInternalRSA(data, encrypted_data);
+	int encrypt_result = rsa_crypting_.EncryptByInternalRSA(data_copy, encrypted_data);
 	if (encrypt_result != TunnelCommon::RsaCrypting::Errror_no)
 	{
 		return Error_prepare_packet;
@@ -247,6 +336,7 @@ int ProtocolParser::prepare_packet(const std::vector<char>& data, std::vector<ch
 	// encrypted data
 	out_packet.insert(out_packet.end(), encrypted_data.begin(), encrypted_data.end());
 
+	// CRC32
 	TunnelCommon::CRC32_hash crc_calc;
 	crc_calc.Update(encrypted_data);
 	crc_calc.Final();
@@ -260,15 +350,16 @@ int ProtocolParser::prepare_packet(const std::vector<char>& data, std::vector<ch
 	return Error_no;
 }
 
-int ProtocolParser::prepare_packet(const std::string& data, std::vector<char>& out_packet) const
+int ProtocolParser::prepare_packet(int packet_type, const std::string& data,
+	std::vector<char>& out_packet) const
 {
 	std::vector<char> data_vec(data.c_str(), data.c_str() + data.size());
-	return prepare_packet(data_vec, out_packet);
+	return prepare_packet(packet_type, data_vec, out_packet);
 }
 
 int ProtocolParser::prepare_rsa_internal_pub_key_packet(std::vector<char>& packet) const
 {
 	const std::vector<char>& pub_key = rsa_crypting_.GetInternalPublicKey();
-	return prepare_packet(pub_key, packet);
+	return prepare_packet(Packet_type_send_internal_rsa_pub_key, pub_key, packet);
 }
 
