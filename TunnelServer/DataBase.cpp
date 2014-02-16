@@ -17,6 +17,11 @@ const std::string query_check_user_exist =
 	"FROM users "
 	"WHERE users.login = '{login}' AND users.passwd_hash = '{passwd_hash}'";
 
+const std::string query_get_node_id_by_name =
+	"SELECT nodes.id "
+	"FROM nodes "
+	"WHERE nodes.name = '{node_name}'";
+
 const std::string query_get_nodes_list =
 	"SELECT nodes.name "
 	"FROM nodes "
@@ -31,6 +36,7 @@ const std::string tag_login = "{login}";
 const std::string tag_passwd_hash = "{passwd_hash}";
 const std::string tag_user_id = "{user_id}";
 const std::string tag_node_id ="{node_id}";
+const std::string tag_node_name = "{node_name}";
 
 } // namespace
 
@@ -79,6 +85,32 @@ bool DataBase::check_user_exist(const std::vector<char>& login,
 
 	if (rec_count == 1)
 	{
+		PQclear(res);
+		return true;
+	}
+	PQclear(res);
+
+	return false;
+}
+
+bool DataBase::get_node_id_by_name(const std::string& node_name, int *out_node_id)
+{
+	std::string query = query_get_node_id_by_name;
+	StringService::Replace(query, tag_node_name, node_name);
+
+	res = PQexec(conn, query.c_str());
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	{
+		return false;
+	}
+
+	int rec_count = PQntuples(res);
+
+	if (rec_count > 0)
+	{
+		*out_node_id = boost::lexical_cast<int>(PQgetvalue(res, 0, 0));
+
 		PQclear(res);
 		return true;
 	}

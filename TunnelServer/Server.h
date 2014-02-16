@@ -24,10 +24,10 @@ private:
 	DataBase db_;
 };
 
-class Server::Node : public Net::connection
+class TunnelServer::Node : public Net::connection
 {
 public:
-	Node(Server *own_server, int socket, DataBase *db);
+	Node(TunnelServer *own_server, int socket, DataBase *db);
 	~Node();
 
 public: // Net::connection
@@ -43,7 +43,7 @@ private:
 		int port_;
 	};
 
-	Server *own_server_;
+	TunnelServer *own_server_;
 	int node_id_;
 	std::map<std::string, destination_node> destination_node_list_;
 	TunnelCommon::ProtocolParser protocol_;

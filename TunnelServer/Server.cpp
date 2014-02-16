@@ -41,7 +41,7 @@ void TunnelServer::unregister_client(int client_id)
 	}
 }
 
-Net::i_net_member* Server::create_connection(int socket)
+Net::i_net_member* TunnelServer::create_connection(int socket)
 {
 	Node *new_client = new Node(this, socket, &db_);
 
@@ -50,7 +50,7 @@ Net::i_net_member* Server::create_connection(int socket)
 
 ///////////////////////////////////////////////////////////////////////////
 
-TunnelServer::Node::Node(Server *own_server, int socket,
+TunnelServer::Node::Node(TunnelServer *own_server, int socket,
 	DataBase *db)
 	: Net::connection(socket, Net::c_poll_event_in)
 	, own_server_(own_server)
@@ -61,7 +61,7 @@ TunnelServer::Node::Node(Server *own_server, int socket,
 
 TunnelServer::Node::~Node()
 {
-	own_server_->unregister_client(id_);
+	own_server_->unregister_client(node_id_);
 }
 
 int TunnelServer::Node::process_events(short int polling_events)
@@ -124,6 +124,17 @@ int TunnelServer::Node::try_login()
 			bool user_exist = db_->check_user_exist(protocol_.get_login(), protocol_.get_passwd_hash());
 			if (user_exist)
 			{
+				// get node ID by name
+				if (!protocol_.get_node_name().empty())
+				{
+					int node_id = 0;
+					if (db_.get_node_id_by_name(protocol_.get_node_name(), node_id))
+					{
+						node_id_ = node_id;
+						own_server_->register_client(node_id_);
+					}
+				}
+
 				// send login accept packet
 				std::vector<char> accept_login_packet;
 				protocol_.prepare_packet(
@@ -139,6 +150,7 @@ int TunnelServer::Node::try_login()
 		}
 		return Net::error_connection_is_closed_;
 	}
+	return Net::error_no_;
 }
 
 int TunnelServer::Node::process_packet()
