@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <tchar.h>
 
+#include <iostream>
 #include <map>
 #include <sstream>
 #include <string>
@@ -27,6 +28,7 @@
 #include "TunnelCommon/Crypting.h"
 #include "TunnelCommon/Hash.h"
 
+#include "Software/Log.h"
 #include "Software/StringService.h"
 
 #include "NetSocket/NetCommon.h"

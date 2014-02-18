@@ -24,7 +24,8 @@ public:
 		Error_prepare_packet = -3,
 		Error_rsa_key_packet = -4,
 		Error_parse_login_packet = -5,
-		Error_unknown_packet = -6
+		Error_unknown_packet = -6,
+		Error_parse_login_node_not_exist = -7
 	};
 
 	ProtocolParser(Node *own_node);

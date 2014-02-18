@@ -140,6 +140,8 @@ int ProtocolParser::process_packet()
 	{
 	case Packet_type_external_rsa_key :
 		{
+			c_Debug() << "process packet, type == 'Packet_type_external_rsa_key'" << "\r\n";
+
 			if (!got_rsa_key())
 			{
 				// process external RSA public key
@@ -151,15 +153,19 @@ int ProtocolParser::process_packet()
 					if (parse_result == ProtocolParser::Error_no)
 					{
 						Net::send_data(own_node_->get_socket(), &packet[0], packet.size());
+						c_Debug() << "process packet, type == 'Packet_type_external_rsa_key', OK" << "\r\n";
+						return Error_no;
 					}
 				}
+				c_Debug() << "process packet, type == 'Packet_type_external_rsa_key', Error_rsa_key_packet" << "\r\n";
 				return Error_rsa_key_packet;
 			}
-
 			break;
 		}
 	case Packet_type_login_data :
 		{
+			c_Debug() << "process packet, type == 'Packet_type_login_data'" << "\r\n";
+
 			if (!got_login_data_)
 			{
 				if (parse_login_packet() == ProtocolParser::Error_no)
@@ -185,14 +191,20 @@ int ProtocolParser::process_packet()
 						Net::send_data(own_node_->get_socket(), &accept_login_packet[0],
 							accept_login_packet.size());
 
-						return Net::error_no_;
+						c_Debug() << "process packet, type == 'Packet_type_login_data', OK" << "\r\n";
+						return Error_no;
 					}
+					c_Debug() << "process packet, type == 'Packet_type_login_data', Error_parse_login_node_not_exist" << "\r\n";
+					return Error_parse_login_node_not_exist;
 				}
+				c_Debug() << "process packet, type == 'Packet_type_login_data', Error_parse_login_packet" << "\r\n";
+				return Error_parse_login_packet;
 			}
 			break;
 		}
 	default:
 		{
+			c_Debug() << "process packet, Error_unknown_packet" << "\r\n";
 			return Error_unknown_packet;
 		}
 	}
@@ -360,6 +372,15 @@ int ProtocolParser::prepare_packet(int packet_type, const std::string& data,
 int ProtocolParser::prepare_rsa_internal_pub_key_packet(std::vector<char>& packet) const
 {
 	const std::vector<char>& pub_key = rsa_crypting_.GetInternalPublicKey();
-	return prepare_packet(Packet_type_send_internal_rsa_pub_key, pub_key, packet);
-}
+	
+	int pub_key_size = pub_key.size();
+	for (int i = 0; i < sizeof(int); ++i)
+	{
+		char tmp = (char) (pub_key_size >> (8 * i));
+		packet.push_back(tmp);
+	}
 
+	packet.insert(packet.begin(), pub_key.begin(), pub_key.end());
+
+	return Error_no;
+}

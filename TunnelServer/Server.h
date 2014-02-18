@@ -3,7 +3,7 @@
 #include "DataBase.h"
 #include "Protocol.h"
 
-class TunnelServer : Net::server
+class TunnelServer : public Net::server
 {
 public:
 	TunnelServer(Net::net_manager *net_manager,
