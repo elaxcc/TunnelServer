@@ -63,7 +63,7 @@ int Node::process_events(short int polling_events)
 {
 	if (polling_events == Net::c_poll_event_in)
 	{
-		c_Debug() << "Node " << node_id_ << "get data" << "\r\n";
+		c_Debug() << "Node " << node_id_ << " get data" << "\r\n";
 
 		// receive data from socket
 		std::vector<char> recv_data;
@@ -74,14 +74,25 @@ int Node::process_events(short int polling_events)
 		}
 
 		// parse packet
-		int parse_result = protocol_->parse_common(recv_data);
+		if (!recv_data.empty())
+		{
+			int parse_result = protocol_->parse(recv_data);
+			//!fixme process parse_result
+		}
 		if (protocol_->is_complete())
 		{
-			protocol_->process_packet();
+			int result = protocol_->process_in();
+			if (result == TunnelCommon::Protocol::Error_rsa_key_packet || 
+				TunnelCommon::Protocol::Error_parse_login_node_not_exist ||
+				TunnelCommon::Protocol::Error_parse_login_packet)
+			{
+				return Net::error_connection_is_closed_;
+			}
 		}
 	}
 	else
 	{
+		protocol_->process_out();
 	}
 
 	return Net::error_no_;
