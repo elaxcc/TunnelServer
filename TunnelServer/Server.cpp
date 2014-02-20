@@ -82,9 +82,9 @@ int Node::process_events(short int polling_events)
 		if (protocol_->is_complete())
 		{
 			int result = protocol_->process_in();
-			if (result == TunnelCommon::Protocol::Error_rsa_key_packet || 
-				TunnelCommon::Protocol::Error_parse_login_node_not_exist ||
-				TunnelCommon::Protocol::Error_parse_login_packet)
+			if (result == TunnelCommon::Protocol::Error_rsa_key_packet ||
+				result == TunnelCommon::Protocol::Error_parse_login_node_not_exist ||
+				result == TunnelCommon::Protocol::Error_parse_login_packet)
 			{
 				return Net::error_connection_is_closed_;
 			}

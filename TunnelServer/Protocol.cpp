@@ -35,14 +35,7 @@ int ProtocolParser::process_in()
 		return Error_packet_not_complete;
 	}
 
-	const std::vector<char> data = get_data();
-	int packet_type = 0;
-	packet_type = 0x000000FF & data[0];
-	packet_type = packet_type | (0x0000FF00 & (data[1] << 8));
-	packet_type = packet_type | (0x00FF0000 & (data[2] << 16));
-	packet_type = packet_type | (0xFF000000 & (data[3] << 24));
-
-	switch (packet_type)
+	switch (get_packet_type())
 	{
 	case Packet_type_external_rsa_key :
 		{
