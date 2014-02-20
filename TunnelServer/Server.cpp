@@ -82,6 +82,7 @@ int Node::process_events(short int polling_events)
 		if (protocol_->is_complete())
 		{
 			int result = protocol_->process_in();
+			protocol_->flush();
 			if (result == TunnelCommon::Protocol::Error_rsa_key_packet ||
 				result == TunnelCommon::Protocol::Error_parse_login_node_not_exist ||
 				result == TunnelCommon::Protocol::Error_parse_login_packet)

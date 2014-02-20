@@ -74,7 +74,7 @@ int ProtocolParser::process_in()
 					if (user_exist)
 					{
 						// get node ID by name
-						if (node_name_.empty())
+						if (!node_name_.empty())
 						{
 							int node_id = 0;
 							if (db_.get_node_id_by_name(node_name_, &node_id))
@@ -128,18 +128,16 @@ int ProtocolParser::parse_login_packet()
 	passwd_hash_.clear();
 	got_login_data_ = false;
 
-	// decoding data
-	std::vector<char> decrypted_data;
-	rsa_crypting_.DecryptByInternalRSA(get_data(), decrypted_data);
-
 	boost::uint32_t processed_data = 0;
+
+	const std::vector<char>& data = get_data();
 
 	// login length
 	boost::uint32_t login_length;
-	login_length = 0x000000FF & decrypted_data[0];
-	login_length = login_length | (0x0000FF00 & (decrypted_data[1] << 8));
-	login_length = login_length | (0x00FF0000 & (decrypted_data[2] << 16));
-	login_length = login_length | (0xFF000000 & (decrypted_data[3] << 24));
+	login_length = 0x000000FF & data[0];
+	login_length = login_length | (0x0000FF00 & (data[1] << 8));
+	login_length = login_length | (0x00FF0000 & (data[2] << 16));
+	login_length = login_length | (0xFF000000 & (data[3] << 24));
 	processed_data += sizeof(login_length);
 
 	if (login_length + sizeof(login_length) >= get_data().size())
@@ -148,16 +146,16 @@ int ProtocolParser::parse_login_packet()
 	}
 
 	// login
-	login_.insert(login_.begin(), decrypted_data[processed_data],
-		decrypted_data[processed_data] + login_length);
+	login_.insert(login_.begin(), &data[processed_data],
+		&data[processed_data] + login_length);
 	processed_data += login_length;
 
 	// password length
 	boost::uint32_t passwd_length;
-	passwd_length = 0x000000FF & decrypted_data[processed_data];
-	passwd_length = passwd_length | (0x0000FF00 & (decrypted_data[processed_data + 1] << 8));
-	passwd_length = passwd_length | (0x00FF0000 & (decrypted_data[processed_data + 2] << 16));
-	passwd_length = passwd_length | (0xFF000000 & (decrypted_data[processed_data + 3] << 24));
+	passwd_length = 0x000000FF & data[processed_data];
+	passwd_length = passwd_length | (0x0000FF00 & (data[processed_data + 1] << 8));
+	passwd_length = passwd_length | (0x00FF0000 & (data[processed_data + 2] << 16));
+	passwd_length = passwd_length | (0xFF000000 & (data[processed_data + 3] << 24));
 	processed_data += sizeof(passwd_length);
 
 	if ((login_length + sizeof(login_length) + passwd_length  + sizeof(passwd_length)) > get_data().size())
@@ -166,15 +164,16 @@ int ProtocolParser::parse_login_packet()
 	}
 
 	// password
-	passwd_hash_.insert(passwd_hash_.begin(), decrypted_data[processed_data],
-		decrypted_data[processed_data] + passwd_length);
+	passwd_hash_.insert(passwd_hash_.begin(), &data[processed_data],
+		&data[processed_data] + passwd_length);
+	processed_data += passwd_length;
 
 	// node name length
 	boost::uint32_t node_name_length;
-	node_name_length = 0x000000FF & decrypted_data[processed_data];
-	node_name_length = node_name_length | (0x0000FF00 & (decrypted_data[processed_data + 1] << 8));
-	node_name_length = node_name_length | (0x00FF0000 & (decrypted_data[processed_data + 2] << 16));
-	node_name_length = node_name_length | (0xFF000000 & (decrypted_data[processed_data + 3] << 24));
+	node_name_length = 0x000000FF & data[processed_data];
+	node_name_length = node_name_length | (0x0000FF00 & (data[processed_data + 1] << 8));
+	node_name_length = node_name_length | (0x00FF0000 & (data[processed_data + 2] << 16));
+	node_name_length = node_name_length | (0xFF000000 & (data[processed_data + 3] << 24));
 	processed_data += sizeof(node_name_length);
 
 	if ((login_length + sizeof(login_length) + 
@@ -186,7 +185,7 @@ int ProtocolParser::parse_login_packet()
 
 	if (node_name_length != 0)
 	{
-		node_name_.insert(0, decrypted_data[processed_data], + node_name_length);
+		node_name_.insert(0, &data[processed_data], node_name_length);
 	}
 
 	got_login_data_ = true;
