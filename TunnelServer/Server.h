@@ -29,6 +29,7 @@ public:
 public: // Net::connection
 	virtual int process_events(short int polling_events);
 	void set_node_id(int node_id);
+	void set_user_id(int user_id);
 
 private:
 
@@ -40,8 +41,8 @@ private:
 
 	TunnelServer *own_server_;
 	int node_id_;
+	int user_id_;
 	std::map<std::string, destination_node> destination_node_list_;
 	ProtocolParser *protocol_;
-	bool is_logined_;
 };
 

@@ -46,8 +46,8 @@ Net::i_net_member* TunnelServer::create_connection(int socket)
 Node::Node(TunnelServer *own_server, int socket)
 	: Net::connection(socket, Net::c_poll_event_in)
 	, own_server_(own_server)
-	, is_logined_(false)
 	, node_id_(0)
+	, user_id_(0)
 {
 	protocol_ = new ProtocolParser(this);
 }
@@ -103,5 +103,10 @@ void Node::set_node_id(int node_id)
 {
 	node_id_ = node_id;
 	own_server_->register_client(node_id_, this);
+}
+
+void Node::set_user_id(int user_id)
+{
+	user_id_ = user_id;
 }
 

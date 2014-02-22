@@ -73,6 +73,11 @@ int ProtocolParser::process_in()
 					bool user_exist = db_.check_user_exist(login_, passwd_hash_);
 					if (user_exist)
 					{
+						// get user ID by login
+						int user_id;
+						db_.get_user_id_by_login(&user_id);
+						own_node_->set_user_id(user_id);
+
 						// get node ID by name
 						if (!node_name_.empty())
 						{
