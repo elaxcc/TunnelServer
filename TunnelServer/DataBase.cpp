@@ -56,6 +56,7 @@ DataBase::DataBase(const std::string& db_name,
 	const std::string& db_user,
 	const std::string& db_password)
 	: is_connected_(false)
+	, res_(NULL)
 {
 	std::string connection_query = query_connection_db;
 	StringService::Replace(connection_query, tag_db_name, db_name);
@@ -78,7 +79,11 @@ DataBase::~DataBase()
 
 bool DataBase::make_query(const std::string& query)
 {
-	PQclear(res_);
+	if (res_)
+	{
+		PQclear(res_);
+		res_= NULL;
+	}
 
 	res_ = PQexec(conn_, query.c_str());
 
@@ -86,6 +91,7 @@ bool DataBase::make_query(const std::string& query)
 	{
 		return false;
 	}
+	return true;
 }
 
 bool DataBase::check_user_exist(const std::vector<char>& login,

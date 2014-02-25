@@ -12,8 +12,6 @@ const std::string db_host = "localhost";
 const std::string db_user = "postgres";
 const std::string db_password = "12345";
 
-const std::string packet_user_accept = "Hello user!!!";
-
 } // namespace
 
 ProtocolParser::ProtocolParser(Node *own_node)
@@ -75,7 +73,7 @@ int ProtocolParser::process_in()
 					{
 						// get user ID by login
 						int user_id;
-						db_.get_user_id_by_login(&user_id);
+						db_.get_user_id_by_login(&login_[0], &user_id);
 						own_node_->set_user_id(user_id);
 
 						// get node ID by name
@@ -90,10 +88,13 @@ int ProtocolParser::process_in()
 
 						// send login accept packet
 						std::vector<char> accept_login_packet;
-						prepare_packet(Packet_type_login_accept, packet_user_accept,
+						prepare_packet(Packet_type_login_accept,
+							TunnelCommon::Protocol::c_packet_login_accept,
 							accept_login_packet);
 						Net::send_data(own_node_->get_socket(), &accept_login_packet[0],
 							accept_login_packet.size());
+
+						c_Debug() << "process packet, send login_accept_packet\r\n";
 
 						c_Debug() << "process packet, type == 'Packet_type_login_data', OK" << "\r\n";
 						return Error_no;
